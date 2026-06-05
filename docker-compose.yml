@@ -1,0 +1,23 @@
+# One-command production-ish run: `docker compose up --build`.
+# The app container serves the API + the built React client on :8000.
+services:
+  agent:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      # Pass your key through from the host environment or a .env file.
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      # On TLS-intercepting corporate networks, set to 1 for web tools.
+      - WORKSHOP_INSECURE_SSL=${WORKSHOP_INSECURE_SSL:-0}
+    volumes:
+      # Persist per-user data and deployed sites across restarts.
+      - ./data:/app/data
+      - ./deploys:/app/deploys
+    restart: unless-stopped
+
+  # To scale out, uncomment Redis and back the SessionStore with it (see
+  # docs/SCALING.md), then run multiple `agent` replicas behind a load balancer.
+  # redis:
+  #   image: redis:7-alpine
+  #   ports: ["6379:6379"]

@@ -1,0 +1,15 @@
+.venv/
+**/__pycache__/
+*.pyc
+web/node_modules/
+web/dist/
+data/
+deploys/
+.sandbox_packages/
+.git/
+.env
+.workshop/
+slides/
+docs/
+*.md
+!web/dist

@@ -1,0 +1,35 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+# Keep the workspace dir but ignore agent-generated files inside it.
+workspace/*
+!workspace/.gitkeep
+# Sandbox-installed packages (runtime, per-machine).
+.sandbox_packages/
+# The agent's learned memory is runtime state, not source.
+agent/memory/memory.md
+# Per-user runtime data (workspaces, memory, sandbox packages, audit log).
+data/
+# Deployed sites (P4 output).
+deploys/
+# Node / client build artifacts.
+web/node_modules/
+web/dist/
+# Slide build artifacts (keep only workshop.pptx).
+slides/*.pdf
+slides/slide-*.jpg
+slides/slide-*.png
+slides/node_modules/
+slides/build_slides.js
+slides/render.py
+.claude/
+
+# macOS
+.DS_Store
+
+# Guide render previews
+guide/_*.png
+# Guide generator (keep only the resulting PDF)
+guide/build_guide.py
