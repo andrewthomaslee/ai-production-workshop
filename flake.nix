@@ -80,9 +80,24 @@
           Labels."org.opencontainers.image.description" = "AI Production Workshop";
         };
       };
+      oci-manifests = pkgs.dockerTools.buildLayeredImage {
+        name = "ai-production-workshop/manifests";
+        contents = [
+          (pkgs.stdenv.mkDerivation {
+            name = "kubernetes-manifests";
+            src = ./kubernetes;
+            installPhase = ''
+              runHook preInstall
+              mkdir -p $out/kubernetes
+              cp -r . $out/kubernetes/
+              runHook postInstall
+            '';
+          })
+        ];
+      };
     in {
       default = dockerImage;
-      inherit webClient pythonEnv appCode;
+      inherit webClient pythonEnv appCode oci-manifests;
     });
 
     # Development environments
@@ -96,6 +111,7 @@
             python
             kompose
             jq
+            dive
           ];
 
           # Environment variables

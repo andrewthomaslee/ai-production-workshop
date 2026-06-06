@@ -19,6 +19,8 @@ jobs:
         include:
           - package: default
             image: ai-production-workshop/agent
+          - package: oci-manifests
+            image: ai-production-workshop/manifests
     runs-on: ubuntu-latest
     permissions:
       id-token: write
