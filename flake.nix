@@ -11,37 +11,48 @@
   };
 
   # Flake outputs that other flakes can use
-  outputs = { self, flake-schemas, nixpkgs }:
-    let
-      # Helpers for producing system-specific outputs
-      supportedSystems = [ "x86_64-linux" "aarch64-linux" ];
-      forEachSupportedSystem = f: nixpkgs.lib.genAttrs supportedSystems (system: f {
-        pkgs = import nixpkgs { inherit system; };
-      });
-    in {
-      # Schemas tell Nix about the structure of your flake's outputs
-      schemas = flake-schemas.schemas;
+  outputs = {
+    self,
+    flake-schemas,
+    nixpkgs,
+  }: let
+    # Helpers for producing system-specific outputs
+    supportedSystems = ["x86_64-linux" "aarch64-linux"];
+    forEachSupportedSystem = f:
+      nixpkgs.lib.genAttrs supportedSystems (system:
+        f {
+          pkgs = import nixpkgs {inherit system;};
+        });
+  in {
+    # Schemas tell Nix about the structure of your flake's outputs
+    schemas = flake-schemas.schemas;
 
-      # Development environments
-      devShells = forEachSupportedSystem ({ pkgs }: {
-        default = pkgs.mkShell {
+    # Development environments
+    devShells = forEachSupportedSystem ({pkgs}:
+      with pkgs; let
+        python = python314;
+      in {
+        default = mkShell {
           # Pinned packages available in the environment
-          packages = with pkgs; [
-            python311
-            (with python311Packages; [  ])
+          packages = [
+            python
             jq
           ];
 
           # Environment variables
           env = {
-            TEST = "1";
+            UV_PYTHON = python.interpreter;
+            UV_PYTHON_DOWNLOADS = "never";
           };
 
           # A hook run every time you enter the environment
           shellHook = ''
-            echo "$TEST"
+            unset PYTHONPATH
+            export PYTHON_INTERPRETER=${python.interpreter}
+            export REPO_ROOT=$(git rev-parse --show-toplevel)
+            uv sync
           '';
         };
       });
-    };
+  };
 }
