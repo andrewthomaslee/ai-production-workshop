@@ -27,6 +27,66 @@
     # Schemas tell Nix about the structure of your flake's outputs
     schemas = flake-schemas.schemas;
 
+    # Packages
+    packages = forEachSupportedSystem ({pkgs}: let
+      webClient = pkgs.buildNpmPackage {
+        pname = "ai-production-workshop-web";
+        version = "0.1.0";
+        src = ./web;
+        npmDepsHash = "sha256-hx8VvPI4FLAyklnxZQ0ijXeu0m/rwmz3Bv3qK9uIpsc=";
+
+        installPhase = ''
+          runHook preInstall
+          mkdir -p $out/app/web/dist
+          cp -r dist/* $out/app/web/dist/
+          runHook postInstall
+        '';
+      };
+
+      pythonEnv = pkgs.python314.withPackages (ps:
+        with ps; [
+          openai
+          python-dotenv
+          fastapi
+          uvicorn
+          certifi
+        ]);
+
+      appCode = pkgs.stdenv.mkDerivation {
+        pname = "ai-production-workshop-app";
+        version = "0.1.0";
+        src = ./.;
+        dontBuild = true;
+
+        installPhase = ''
+          runHook preInstall
+          mkdir -p $out/app
+          cp -r agent server.py cli.py $out/app/
+          runHook postInstall
+        '';
+      };
+
+      dockerImage = pkgs.dockerTools.buildLayeredImage {
+        name = "ai-production-workshop";
+        tag = "latest";
+        contents = [
+          pythonEnv
+          appCode
+          webClient
+        ];
+        config = {
+          Cmd = ["${pythonEnv}/bin/uvicorn" "server:app" "--host" "0.0.0.0" "--port" "8000"];
+          WorkingDir = "/app";
+          ExposedPorts = {
+            "8000/tcp" = {};
+          };
+        };
+      };
+    in {
+      default = dockerImage;
+      inherit webClient pythonEnv appCode;
+    });
+
     # Development environments
     devShells = forEachSupportedSystem ({pkgs}:
       with pkgs; let
@@ -36,6 +96,7 @@
           # Pinned packages available in the environment
           packages = [
             python
+            kompose
             jq
           ];
 
