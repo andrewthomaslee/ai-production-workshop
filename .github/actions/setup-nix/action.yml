@@ -1,0 +1,10 @@
+name: 'Setup Nix'
+description: 'Installs Nix and configures FlakeHub cache'
+
+runs:
+  using: "composite"
+  steps:
+    - name: Install Nix  
+      uses: DeterminateSystems/determinate-nix-action@main
+    - name: Nix Cache
+      uses: DeterminateSystems/flakehub-cache-action@main

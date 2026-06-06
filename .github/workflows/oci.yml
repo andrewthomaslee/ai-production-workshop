@@ -1,0 +1,37 @@
+name: OCI
+permissions:
+  id-token: write
+  packages: write
+  contents: read
+
+on:
+  push:
+    branches:
+      - dev
+
+jobs:
+  get-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.semver.outputs.tag }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+
+      - name: Generate semver tag
+        id: semver
+        run: |
+          COMMIT_COUNT=$(git rev-list --count HEAD)
+          TAG="0.1.${COMMIT_COUNT}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Generated tag: ${TAG}"
+
+  push-oci:
+    needs: get-tag
+    uses: ./.github/workflows/_oci.yml
+    with:
+      push: true
+      tag: ${{ needs.get-tag.outputs.tag }}
+    secrets: inherit

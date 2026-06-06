@@ -1,0 +1,84 @@
+name: Reusable Build and Push OCI
+on:
+  workflow_call:
+    inputs:
+      push:
+        description: 'Whether to push the images'
+        required: false
+        type: boolean
+        default: false
+      tag:
+        description: 'The tag to use for the pushed images'
+        required: false
+        type: string
+jobs:
+  oci:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - package: default
+            image: ai-production-workshop/agent
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      packages: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+          
+      - name: Setup Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Build OCI image
+        run: nix build .#${{ matrix.package }} --show-trace
+
+      - name: Login to GitHub Container Registry
+        if: ${{ inputs.push }}
+        uses: docker/login-action@v4.2.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Load, Tag, and Push Docker image
+        if: ${{ inputs.push }}
+        run: |
+          # Load the image and capture the output to find the hash tag
+          LOAD_OUTPUT=$(docker load -i result)
+          # Expected output: "Loaded image: name:hash"
+          LOADED_IMAGE=$(echo "$LOAD_OUTPUT" | grep -oP 'Loaded image: \K.*')
+          
+          IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}"
+          IMAGE_NAME=$(echo "$IMAGE_NAME" | tr '[:upper:]' '[:lower:]')
+          SEMVER_TAG="${{ inputs.tag }}"
+          
+          # The loaded image is already tagged with the derivation hash
+          # Tag with semver and latest
+          docker tag $LOADED_IMAGE $IMAGE_NAME:$SEMVER_TAG
+          docker tag $LOADED_IMAGE $IMAGE_NAME:latest
+          
+          # If the loaded image doesn't match the remote IMAGE_NAME, we need to tag it to match
+          HASH_TAG=$(echo "$LOADED_IMAGE" | cut -d':' -f2)
+          docker tag $LOADED_IMAGE $IMAGE_NAME:$HASH_TAG
+          
+          # Push all tags
+          docker push $IMAGE_NAME:$HASH_TAG
+          docker push $IMAGE_NAME:$SEMVER_TAG
+          docker push $IMAGE_NAME:latest
+          
+          # Save digest to environment for the signing step
+          IMAGE_DIGEST=$(docker inspect --format='{{index .RepoDigests 0}}' $IMAGE_NAME:latest)
+          echo "IMAGE_DIGEST=$IMAGE_DIGEST" >> $GITHUB_ENV
+
+      - name: Install Cosign
+        if: ${{ inputs.push }}
+        uses: sigstore/cosign-installer@v4.1.2
+
+      - name: Sign the images with GitHub OIDC Token
+        if: ${{ inputs.push }}
+        run: |
+          cosign sign --yes ${IMAGE_DIGEST}

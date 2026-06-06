@@ -1,0 +1,39 @@
+name: Release
+permissions:
+  id-token: write
+  contents: write
+  packages: write
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  check:
+    uses: ./.github/workflows/_flake-check.yml
+
+  build:
+    needs: check
+    uses: ./.github/workflows/_build-artifacts.yml
+
+  oci:
+    needs: check
+    uses: ./.github/workflows/_oci.yml
+
+  publish:
+    needs: [ build, oci, check]
+    uses: ./.github/workflows/_publish.yml
+
+  release:
+    needs: publish
+    uses: ./.github/workflows/_release.yml
+    secrets: inherit
+
+  push-oci:
+    needs: release
+    uses: ./.github/workflows/_oci.yml
+    with:
+      push: true
+      tag: ${{ needs.release.outputs.tag }}
+    secrets: inherit

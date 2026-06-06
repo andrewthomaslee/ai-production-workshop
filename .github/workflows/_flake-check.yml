@@ -1,0 +1,26 @@
+name: Reusable Flake Check
+on: workflow_call
+jobs:
+  flake-check:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Flake Checker
+        uses: DeterminateSystems/flake-checker-action@main
+        with:
+          check-owner: false
+          check-supported: false
+          fail-mode: true
+
+      - name: Nix Flake Check
+        run: nix flake check --show-trace

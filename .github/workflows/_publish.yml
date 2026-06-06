@@ -1,0 +1,25 @@
+name: Reusable Publish
+on: workflow_call
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Publish to FlakeHub
+        uses: DeterminateSystems/flakehub-push@main
+        with:
+          visibility: public
+          name: andrewthomaslee/ai-production-workshop
+          include-output-paths: true
+          rolling: true
+          rolling-minor: 1

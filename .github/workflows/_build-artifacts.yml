@@ -1,0 +1,23 @@
+name: Reusable Build Artifacts
+on: workflow_call
+jobs:
+  build-artifacts:
+    strategy:
+      fail-fast: false
+      matrix:
+        artifact: [pythonEnv, webClient, appCode]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Setup Nix
+        uses: ./.github/actions/setup-nix
+
+      - name: Build ${{ matrix.artifact }}
+        run: nix build .#${{ matrix.artifact }} --show-trace
