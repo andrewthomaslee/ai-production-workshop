@@ -67,8 +67,7 @@
       };
 
       dockerImage = pkgs.dockerTools.buildLayeredImage {
-        name = "ai-production-workshop";
-        tag = "latest";
+        name = "ai-production-workshop/agent";
         contents = [
           pythonEnv
           appCode
@@ -77,9 +76,8 @@
         config = {
           Cmd = ["${pythonEnv}/bin/uvicorn" "server:app" "--host" "0.0.0.0" "--port" "8000"];
           WorkingDir = "/app";
-          ExposedPorts = {
-            "8000/tcp" = {};
-          };
+          ExposedPorts."8000/tcp" = {};
+          Labels."org.opencontainers.image.description" = "AI Production Workshop";
         };
       };
     in {
