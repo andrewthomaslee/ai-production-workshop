@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose --file ../docker-compose.yml convert
+    kompose.version: 1.38.0 (HEAD)
+  labels:
+    io.kompose.service: agent
+  name: agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: agent
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose --file ../docker-compose.yml convert
+        kompose.version: 1.38.0 (HEAD)
+      labels:
+        io.kompose.service: agent
+    spec:
+      containers:
+        - env:
+            - name: OPENAI_API_KEY
+            - name: WORKSHOP_INSECURE_SSL
+              value: "0"
+          image: ghcr.io/andrewthomaslee/ai-production-workshop/agent:latest
+          name: agent
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /app/deploys
+              name: agent-claim1
+      restartPolicy: Always
+      volumes:
+        - name: agent-claim1
+          persistentVolumeClaim:
+            claimName: agent-claim1

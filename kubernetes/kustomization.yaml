@@ -1,0 +1,5 @@
+resources:
+  - agent-claim1-persistentvolumeclaim.yaml
+  - agent-deployment.yaml
+  - agent-ingress.yaml
+  - agent-service.yaml
