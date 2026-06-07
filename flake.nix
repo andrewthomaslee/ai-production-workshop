@@ -66,7 +66,7 @@
         '';
       };
 
-      dockerImage = pkgs.dockerTools.buildLayeredImage {
+      dockerImage = pkgs.dockerTools.buildImage {
         name = "ai-production-workshop/agent";
         contents = [
           pythonEnv
@@ -80,20 +80,23 @@
           Labels."org.opencontainers.image.description" = "AI Production Workshop";
         };
       };
-      oci-manifests = pkgs.dockerTools.buildLayeredImage {
+
+      manifests = pkgs.stdenv.mkDerivation {
+        name = "kubernetes-manifests";
+        src = ./kubernetes;
+        installPhase = ''
+          runHook preInstall
+          mkdir -p $out/kubernetes
+          cp -r . $out/kubernetes/
+          runHook postInstall
+        '';
+      };
+
+      oci-manifests = pkgs.dockerTools.buildImage {
         name = "ai-production-workshop/manifests";
-        contents = [
-          (pkgs.stdenv.mkDerivation {
-            name = "kubernetes-manifests";
-            src = ./kubernetes;
-            installPhase = ''
-              runHook preInstall
-              mkdir -p $out/kubernetes
-              cp -r . $out/kubernetes/
-              runHook postInstall
-            '';
-          })
-        ];
+        extraCommands = ''
+          cp -a ${manifests}/. .
+        '';
       };
     in {
       default = dockerImage;
