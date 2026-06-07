@@ -132,5 +132,14 @@
           '';
         };
       });
+
+    checks = forEachSupportedSystem ({pkgs}: {
+      kustomize =
+        pkgs.runCommand "kustomize-build" {
+          nativeBuildInputs = [pkgs.kustomize];
+        } ''
+          kustomize build ${self}/kubernetes/ > $out
+        '';
+    });
   };
 }
